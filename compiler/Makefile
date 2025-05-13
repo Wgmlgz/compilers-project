@@ -18,7 +18,7 @@ out/lexer.tab.cpp: src/lexer.l
 	$(LEX) -o out/lexer.tab.cpp src/lexer.l
 
 out/parser.tab.cpp: src/parser.y
-	$(BISON) -Wcounterexamples -d -o out/parser.tab.cpp src/parser.y
+	$(BISON) -Wno-other -d -o out/parser.tab.cpp src/parser.y
 
 test: $(INTERPRETER)
 	@echo "Running tests...\n"
@@ -29,5 +29,5 @@ test: $(INTERPRETER)
 	done
 
 clean:
-	rm -f out
-	mkdir out
+	rm -rf out/*
+	mkdir -p out
