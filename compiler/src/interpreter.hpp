@@ -7,6 +7,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include <exception>
 
 using string = std::string;
 
@@ -29,6 +30,17 @@ struct VariableInfo {
 struct UndefinedType {};
 
 using Value = std::variant<int, bool, string, UndefinedType>;
+
+// Exception used for early return from function
+class ReturnValue : public std::exception {
+public:
+  Value value;
+  ReturnValue(Value val) : value(val) {}
+  
+  const char* what() const noexcept override {
+    return "Return statement executed";
+  }
+};
 
 class Node {
  public:

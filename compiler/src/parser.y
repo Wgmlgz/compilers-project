@@ -3,14 +3,24 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
+#include <fstream>
+#include <sstream>
 #include "../src/interpreter.hpp"
+#include "../src/error.hpp"
 
 void yyerror(const char* s) {
-  std::cerr << "Error: " << s << std::endl;
+  syntaxError(s);
 }
 int yylex();
 ProgramNode* program = nullptr;
 extern char* yytext;
+extern int line_num;
+extern int column_num;
+extern std::string current_file;
+extern void set_current_file(const char* filename);
+
+// Buffer to accumulate source code for error reporting
+std::string source_buffer;
 %}
 
 %glr-parser
@@ -345,11 +355,42 @@ function_call:
 
 extern FILE * yyin;
 int main(int argc, char **argv) {
+   // Set up source capture for error reporting
+   std::string source_content;
+   
    if (argc > 1) {
+      set_current_file(argv[1]);
       yyin = fopen(argv[1], "r");
-      if (yyin == NULL){
+      if (yyin == NULL) {
          printf("syntax: %s filename\n", argv[0]);
+         return 1;
       }
+      
+      // Load the source file for error reporting
+      load_source_file(argv[1]);
+   } else {
+      // Reading from stdin, need to capture the input
+      set_current_file("<stdin>");
+      
+      // Read complete input from stdin for error reporting
+      std::string line;
+      while (std::getline(std::cin, source_content)) {
+         source_buffer += source_content + "\n";
+      }
+      
+      // Reset stdin to start reading again
+      std::istringstream input_stream(source_buffer);
+      yyin = tmpfile();
+      if (yyin == NULL) {
+         printf("Error: Could not create temporary file for input\n");
+         return 1;
+      }
+      
+      fputs(source_buffer.c_str(), yyin);
+      rewind(yyin);
+      
+      // Load the source content for error reporting
+      load_source_from_string(source_buffer);
    }
    
    if (yyparse() == 0 && program) {

@@ -1,4 +1,5 @@
 #include "interpreter.hpp"
+#include "error.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -40,7 +41,17 @@ Value getVar(const string &name) {
     for (auto &scope : std::views::reverse(scopes)) {
         if (scope.count(name)) return scope[name];
     }
-    std::cerr << "Error: Undefined variable '" << name << "'" << std::endl;
+    
+    // Create detailed error for undefined variable
+    auto error = createError(ErrorType::NAME_ERROR, 
+                             "Cannot find variable '" + name + "' in this scope", 
+                             current_location);
+    
+    // Suggest looking for typos or declaring the variable
+    error.suggest_fix("make sure the variable is declared before use", 
+                      "let " + name + " = value;");
+    
+    error.report();
     exit(1);
 }
 
@@ -49,14 +60,14 @@ VariableInfo getVarInfo(const string &name) {
     for (auto &scope : std::views::reverse(varTypes)) {
         if (scope.count(name)) return scope[name];
     }
-    std::cerr << "Error: Undefined variable '" << name << "'" << std::endl;
-    exit(1);
+    nameError("Undefined variable '" + name + "'");
+    exit(1); // Redundant as nameError will exit, but keeps compiler happy
 }
 
 // Create a new variable with type information
 void createVar(const string &name, Value value, bool mutable_, Type type) { 
     if (scopes.back().count(name)) {
-        std::cerr << "Error: Variable '" << name << "' already exists in this scope" << std::endl;
+        nameError("Variable '" + name + "' already exists in this scope");
         exit(1);
     }
     scopes.back()[name] = value;
@@ -70,7 +81,7 @@ void setVar(const string &name, Value value) {
             // Check mutability
             VariableInfo info = varTypes[i][name];
             if (!info.mutable_) {
-                std::cerr << "Error: Cannot assign to immutable variable '" << name << "'" << std::endl;
+                immutableError("Cannot assign to immutable variable '" + name + "'");
                 exit(1);
             }
             // Type checking would occur here
@@ -78,7 +89,7 @@ void setVar(const string &name, Value value) {
             return;
         }
     }
-    std::cerr << "Error: Undefined variable '" << name << "'" << std::endl;
+    nameError("Undefined variable '" + name + "'");
     exit(1);
 }
 
@@ -87,7 +98,7 @@ int toInt(const Value &v) {
     if (auto p = std::get_if<int>(&v)) return *p;
     if (auto p = std::get_if<bool>(&v)) return *p ? 1 : 0;
     
-    std::cerr << "Error: Cannot convert value to integer" << std::endl;
+    typeError("Cannot convert value to integer");
     exit(1);
 }
 
@@ -145,14 +156,14 @@ Value BinaryNode::evaluate() const {
         if (op == "*") return l * r;
         if (op == "/") {
             if (r == 0) {
-                std::cerr << "Error: Division by zero" << std::endl;
+                typeError("Division by zero");
                 exit(1);
             }
             return l / r;
         }
         if (op == "%") {
             if (r == 0) {
-                std::cerr << "Error: Modulo by zero" << std::endl;
+                typeError("Modulo by zero");
                 exit(1);
             }
             return l % r;
@@ -205,53 +216,67 @@ Value BinaryNode::evaluate() const {
 Type BinaryNode::typeCheck() const {
     Type leftType = left->typeCheck();
     Type rightType = right->typeCheck();
-
+    
     // String concatenation
-    if (op == "+" && (leftType == Type::STR || rightType == Type::STR)) {
-        return Type::STR;
-    }
-
-    // Arithmetic operations
-    if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
-        if (leftType != Type::I32 || rightType != Type::I32) {
-            std::cerr << "Error: Arithmetic operator '" << op 
-                      << "' requires i32 operands" << std::endl;
-            exit(1);
+    if (op == "+") {
+        if (leftType == Type::STR || rightType == Type::STR) {
+            return Type::STR;
         }
-        return Type::I32;
+        
+        // Numeric addition
+        if (leftType == Type::I32 && rightType == Type::I32) {
+            return Type::I32;
+        }
+        
+        // Create detailed error for type mismatch
+        auto error = createError(ErrorType::TYPE_ERROR, 
+                                "Mismatched types for operator '+': cannot add " + 
+                                typeToString(static_cast<int>(leftType)) + " and " + 
+                                typeToString(static_cast<int>(rightType)), 
+                                current_location);
+        
+        std::string fixExample = "// Example for numbers:\nlet a: i32 = 5;\nlet b: i32 = 10;\nlet sum = a + b;\n\n";
+        fixExample += "// Example for strings:\nlet s1 = \"hello\";\nlet s2 = \"world\";\nlet combined = s1 + s2;";
+        
+        error.suggest_fix("ensure both operands have compatible types", fixExample);
+        
+        error.report();
+        exit(1);
     }
-
+    
+    // Arithmetic operations
+    if (op == "-" || op == "*" || op == "/" || op == "%") {
+        if (leftType == Type::I32 && rightType == Type::I32) {
+            return Type::I32;
+        }
+        
+        typeError("Cannot apply operator '" + op + "' to types " + 
+                  typeToString(static_cast<int>(leftType)) + " and " + 
+                  typeToString(static_cast<int>(rightType)));
+        return Type::UNKNOWN;
+    }
+    
     // Comparison operations
     if (op == "==" || op == "!=" || op == ">" || op == "<" || op == ">=" || op == "<=") {
-        // For equality and inequality, we allow comparing the same types
-        if (op == "==" || op == "!=") {
-            if (leftType != rightType) {
-                std::cerr << "Error: Equality operators require operands of the same type" << std::endl;
-                exit(1);
-            }
-        } else {
-            // For ordering comparisons, we only allow i32
-            if (leftType != Type::I32 || rightType != Type::I32) {
-                std::cerr << "Error: Comparison operator '" << op 
-                          << "' requires i32 operands" << std::endl;
-                exit(1);
-            }
+        // Type compatibility check
+        if (leftType != rightType && 
+            !(leftType == Type::I32 && rightType == Type::I32)) {
+            typeError("Cannot compare values of different types: " + 
+                      typeToString(static_cast<int>(leftType)) + " and " + 
+                      typeToString(static_cast<int>(rightType)));
         }
         return Type::BOOL;
     }
-
+    
     // Logical operations
     if (op == "&&" || op == "||") {
         if (leftType != Type::BOOL || rightType != Type::BOOL) {
-            std::cerr << "Error: Logical operator '" << op 
-                      << "' requires bool operands" << std::endl;
-            exit(1);
+            typeError("Logical operators require boolean operands");
         }
         return Type::BOOL;
     }
-
-    std::cerr << "Error: Unknown binary operator '" << op << "'" << std::endl;
-    exit(1);
+    
+    return Type::UNKNOWN;
 }
 
 // Evaluate a unary operation node
@@ -292,6 +317,30 @@ Type UnaryNode::typeCheck() const {
 
 // Assign a value to a variable
 Value AssignNode::evaluate() const {
+    // First, check if the variable exists
+    if (!hasVar(name)) {
+        nameError("Undefined variable '" + name + "'");
+        exit(1);
+    }
+    
+    // Check if the variable is mutable
+    VariableInfo info = getVarInfo(name);
+    if (!info.mutable_) {
+        // Create a detailed error with context and fix suggestion
+        auto error = createError(ErrorType::IMMUTABLE_ERROR, 
+                                "Cannot assign to immutable variable '" + name + "'", 
+                                current_location);
+        
+        // Add a specific note and suggestion for the fix
+        error.suggest_fix("consider declaring the variable with 'mut' to make it mutable", 
+                          "let mut " + name + " = value;\n" +
+                          name + " = new_value;");
+        
+        error.report();
+        exit(1);
+    }
+    
+    // If we get here, assignment is allowed
     Value result = expression->evaluate();
     setVar(name, result);
     return result;
@@ -442,112 +491,91 @@ Type FunctionNode::typeCheck() const {
 
 // Return statement
 Value ReturnNode::evaluate() const {
-    if (expression) {
-        return expression->evaluate();
-    }
-    return UndefinedType();
+    Value val = expression ? expression->evaluate() : UndefinedType();
+    throw ReturnValue(val);
 }
 
 Type ReturnNode::typeCheck() const {
-    if (expression) {
-        return expression->typeCheck();
+    if (!expression) {
+        return Type::UNIT;
     }
-    return Type::UNIT;
+    return expression->typeCheck();
 }
 
 // Function call
 Value FunctionCallNode::evaluate() const {
-    if (functionName == "println") {
-        for (const auto& arg : arguments) {
-            Value result = arg->evaluate();
-            std::cout << toString(result) << std::endl;
-        }
-        return UndefinedType();
+    // Look up function by name
+    if (functions.find(functionName) == functions.end()) {
+        functionError("Undefined function '" + functionName + "'");
+        exit(1);
     }
     
-    // Custom function
-    if (functions.count(functionName)) {
-        FunctionNode* func = functions[functionName];
-        
-        // Check argument count
-        if (arguments.size() != func->parameters.size()) {
-            std::cerr << "Error: Function '" << functionName 
-                      << "' expects " << func->parameters.size() 
-                      << " arguments but got " << arguments.size() << std::endl;
-            exit(1);
-        }
-        
-        // Save current scope
-        auto savedScopes = scopes;
-        auto savedVarTypes = varTypes;
-        
-        // Create new scope for function
-        enterScope();
-        
-        // Evaluate and pass arguments
-        std::vector<Value> argValues;
-        for (size_t i = 0; i < arguments.size(); i++) {
-            argValues.push_back(arguments[i]->evaluate());
-        }
-        
-        // Parameters in the parser are stored in reverse order
-        for (size_t i = 0; i < func->parameters.size(); i++) {
-            createVar(func->parameters[i].name, argValues[i], false, func->parameters[i].type);
-        }
-        
-        // Execute function body
-        Value result = func->body->evaluate();
-        
-        // Restore scope
-        scopes = savedScopes;
-        varTypes = savedVarTypes;
-        
-        return result;
+    auto func = functions[functionName];
+    
+    // Validate argument count
+    if (arguments.size() != func->parameters.size()) {
+        functionError("Function '" + functionName + "' expects " + 
+                     std::to_string(func->parameters.size()) + " arguments, but got " + 
+                     std::to_string(arguments.size()));
+        exit(1);
     }
     
-    std::cerr << "Error: Undefined function '" << functionName << "'" << std::endl;
-    exit(1);
+    // Evaluate arguments
+    std::vector<Value> argValues;
+    for (int i = 0; i < arguments.size(); i++) {
+        argValues.push_back(arguments[i]->evaluate());
+    }
+    
+    // Create function scope with parameter bindings
+    enterScope();
+    for (int i = 0; i < func->parameters.size(); i++) {
+        createVar(func->parameters[i].name, argValues[i], false, func->parameters[i].type);
+    }
+    
+    // Execute function body
+    Value result;
+    try {
+        result = func->body->evaluate();
+    } catch (const ReturnValue& rv) {
+        result = rv.value;
+    }
+    
+    // Clean up function scope
+    exitScope();
+    
+    return result;
 }
 
 Type FunctionCallNode::typeCheck() const {
-    // Built-in functions
-    if (functionName == "println") {
-        for (const auto& arg : arguments) {
-            arg->typeCheck(); // Just check arguments are valid
-        }
-        return Type::UNIT;
+    // Look up function by name
+    if (functions.find(functionName) == functions.end()) {
+        functionError("Undefined function '" + functionName + "'");
+        return Type::UNKNOWN;
     }
     
-    // Custom function
-    if (functions.count(functionName)) {
-        FunctionNode* func = functions[functionName];
-        
-        // Check argument count
-        if (arguments.size() != func->parameters.size()) {
-            std::cerr << "Error: Function '" << functionName 
-                      << "' expects " << func->parameters.size() 
-                      << " arguments but got " << arguments.size() << std::endl;
-            exit(1);
-        }
-        
-        // Check argument types
-        for (size_t i = 0; i < arguments.size(); i++) {
-            Type argType = arguments[i]->typeCheck();
-            Type paramType = func->parameters[i].type;
-            
-            if (argType != paramType) {
-                std::cerr << "Error: Argument " << i << " to function '" << functionName 
-                          << "' is " << static_cast<int>(argType)
-                          << " but expected " << static_cast<int>(paramType) << std::endl;
-                exit(1);
-            }
-        }
-        
-        return func->returnType;
+    auto func = functions[functionName];
+    
+    // Validate argument count
+    if (arguments.size() != func->parameters.size()) {
+        functionError("Function '" + functionName + "' expects " + 
+                     std::to_string(func->parameters.size()) + " arguments, but got " + 
+                     std::to_string(arguments.size()));
+        return Type::UNKNOWN;
     }
     
-    std::cerr << "Error: Undefined function '" << functionName << "'" << std::endl;
-    exit(1);
+    // Type check arguments against parameter types
+    for (int i = 0; i < arguments.size(); i++) {
+        Type argType = arguments[i]->typeCheck();
+        Type paramType = func->parameters[i].type;
+        
+        if (argType != paramType && paramType != Type::UNKNOWN) {
+            functionError("Argument " + std::to_string(i) + " to function '" + functionName + 
+                         "' is " + typeToString(static_cast<int>(argType)) + 
+                         " but expected " + typeToString(static_cast<int>(paramType)));
+        }
+    }
+    
+    return func->returnType;
 }
 
 // Print formatting
