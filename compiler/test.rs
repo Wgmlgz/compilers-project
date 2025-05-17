@@ -1,8 +1,12 @@
-// Simple function test
+// Factorial calculation in ArrowRust
 
-fn add(a: i32, b: i32) {
-    return;
+let n = 10;
+let mut result = 1;
+let mut i = 1;
+
+while i <= n {
+    result *= i;
+    i += 1;
 }
 
-let result = add(5, 3);
-print!("Result of 5 + 3 = {}", result); 
+print!("Huh? {}", result);

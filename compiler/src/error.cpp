@@ -1,5 +1,5 @@
 #include "error.hpp"
-#include "interpreter.hpp"
+#include "ast.hpp"
 #include <fstream>
 #include <sstream>
 

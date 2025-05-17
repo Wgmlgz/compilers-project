@@ -5,14 +5,14 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-#include "../src/interpreter.hpp"
+#include "../src/ast.hpp"
 #include "../src/error.hpp"
 
 void yyerror(const char* s) {
   syntaxError(s);
 }
 int yylex();
-ProgramNode* program = nullptr;
+BlockNode* program = nullptr;
 extern char* yytext;
 extern int line_num;
 extern int column_num;
@@ -78,35 +78,18 @@ program:
 items:
   item { 
     if (!program) {
-      program = new ProgramNode();
-      auto mainBlock = new BlockNode();
-      program->setMainBlock(mainBlock);
+      program = new BlockNode();
     }
     
-    if (auto func = dynamic_cast<FunctionNode*>($1)) {
-      program->addFunction($1);
-    } else {
-      auto mainBlock = dynamic_cast<BlockNode*>(program->mainBlock.get());
-      if (mainBlock) {
-        mainBlock->addStatement($1);
-      }
-    }
+    program->addStatement($1);
   }
   | items item {
-    if (auto func = dynamic_cast<FunctionNode*>($2)) {
-      program->addFunction($2);
-    } else {
-      auto mainBlock = dynamic_cast<BlockNode*>(program->mainBlock.get());
-      if (mainBlock) {
-        mainBlock->addStatement($2);
-      }
-    }
+    program->addStatement($2);
   }
   ;
 
 item:
-  function_definition { $$ = $1; }
-  | statement { $$ = $1; }
+  statement { $$ = $1; }
   ;
 
 statements:
@@ -331,24 +314,6 @@ function_call:
     auto node = new FunctionCallNode($1); 
     $$ = node;
   }
-  | IDENTIFIER OPEN_PARENTHESES expression CLOSE_PARENTHESES { 
-    auto node = new FunctionCallNode($1); 
-    node->addArgument($3);
-    $$ = node;
-  }
-  | IDENTIFIER OPEN_PARENTHESES expression COMMA expression CLOSE_PARENTHESES { 
-    auto node = new FunctionCallNode($1); 
-    node->addArgument($3);
-    node->addArgument($5);
-    $$ = node;
-  }
-  | IDENTIFIER OPEN_PARENTHESES expression COMMA expression COMMA expression CLOSE_PARENTHESES { 
-    auto node = new FunctionCallNode($1); 
-    node->addArgument($3);
-    node->addArgument($5);
-    node->addArgument($7);
-    $$ = node;
-  }
   ;
 
 %%
@@ -396,8 +361,6 @@ int main(int argc, char **argv) {
    if (yyparse() == 0 && program) {
       std::cout << "Parsing completed successfully. AST:" << std::endl;
       program->print();
-      std::cout << "\nOutput:" << std::endl;
-      program->evaluate();
    }
    
    return 0;

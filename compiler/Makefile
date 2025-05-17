@@ -2,17 +2,17 @@ CC = g++
 LEX = flex
 BISON = bison
 CFLAGS = -std=c++20
-INTERPRETER = out/js
+COMPILER = out/js
 
 .PHONY: run build
 
-build: $(INTERPRETER)
+build: $(COMPILER)
 
 run: build
-	$(INTERPRETER) example.js
+	$(COMPILER) example.js
 
-$(INTERPRETER): out/lexer.tab.cpp out/parser.tab.cpp src/interpreter.cpp src/error.cpp
-	$(CC) $(CFLAGS) out/lexer.tab.cpp out/parser.tab.cpp src/interpreter.cpp src/error.cpp -o $(INTERPRETER)
+$(COMPILER): out/lexer.tab.cpp out/parser.tab.cpp src/ast.cpp src/error.cpp
+	$(CC) $(CFLAGS) out/lexer.tab.cpp out/parser.tab.cpp src/ast.cpp src/error.cpp -o $(COMPILER)
 
 out/lexer.tab.cpp: src/lexer.l
 	$(LEX) -o out/lexer.tab.cpp src/lexer.l
@@ -22,13 +22,13 @@ out/parser.tab.cpp: src/parser.y
 
 dev: build
 	@echo "Running dev test...\n"
-	$(INTERPRETER) < test.rs;
+	$(COMPILER) < test.rs;
 
 test: build
 	@echo "Running tests...\n"
 	@for test in tests/legit/**; do \
 		echo "Running $$test..."; \
-		$(INTERPRETER) < $$test; \
+		$(COMPILER) < $$test; \
 		echo " "; \
 	done
 
@@ -36,7 +36,7 @@ test_bad_examples: build
 	@echo "Running bad examples (these should fail with detailed errors)...\n"
 	@for test in tests/bad_examples/**; do \
 		echo "Running $$test..."; \
-		$(INTERPRETER) < $$test || echo "Test failed as expected"; \
+		$(COMPILER) < $$test || echo "Test failed as expected"; \
 		echo " "; \
 	done
 

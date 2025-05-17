@@ -1,5 +1,5 @@
 %{
-#include "../src/interpreter.hpp"
+#include "../src/ast.hpp"
 #include "../src/error.hpp"
 #include "parser.tab.hpp"
 #include <iostream>
