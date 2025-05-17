@@ -24,14 +24,13 @@ std::string source_buffer;
 %}
 
 %glr-parser
-%expect 3
-%expect-rr 15
+%expect 1
+%expect-rr 14
 
 %union {
   Node *node;
   char* str;
   int num;
-  std::vector<FunctionParamNode>* params;
   Type type;
 }
 
@@ -42,17 +41,15 @@ std::string source_buffer;
 %token ASSIGN PLUS_ASSIGN MINUS_ASSIGN STAR_ASSIGN SLASH_ASSIGN MODULO_ASSIGN
 %token EQ LT GT LEQ GEQ NEQ AND OR NOT
 %token TRUE FALSE
-%token IF ELSE WHILE LET MUT RETURN PRINT
+%token IF ELSE WHILE LET MUT PRINT
 %token I32_TYPE STR_TYPE BOOL_TYPE UNIT_TYPE
 %token OPEN_PARENTHESES CLOSE_PARENTHESES OPEN_BRACKET CLOSE_BRACKET
 
 %type <node> program items item statements statement expression
 %type <node> expression_statement block 
 %type <node> if_statement while_statement declaration assignment
-%type <node> return_statement
 %type <node> print_statement
 %type <node> precedence16 precedence15 precedence14 precedence10 precedence9 precedence6 precedence5 precedence3 precedence0
-%type <node> function_call
 %type <type> type_annotation
 
 %nonassoc IF
@@ -115,7 +112,6 @@ statement:
   | assignment SEMICOLON { $$ = $1; }
   | if_statement { $$ = $1; }
   | while_statement { $$ = $1; }
-  | return_statement SEMICOLON { $$ = $1; }
   | print_statement SEMICOLON { $$ = $1; }
   | block { $$ = $1; }
   ;
@@ -176,12 +172,6 @@ if_statement:
 while_statement:
   WHILE expression block { 
     $$ = new WhileNode($2, $3); 
-  }
-  ;
-
-return_statement:
-  RETURN { 
-    $$ = new ReturnNode(new UnitNode()); 
   }
   ;
 
@@ -256,15 +246,7 @@ precedence0:
   | IDENTIFIER { $$ = new VariableNode($1); }
   | STRING { $$ = new StringNode($1); }
   | OPEN_PARENTHESES expression CLOSE_PARENTHESES { $$ = $2; }
-  | function_call { $$ = $1; }
   | block { $$ = $1; }
-  ;
-
-function_call:
-  IDENTIFIER OPEN_PARENTHESES CLOSE_PARENTHESES { 
-    auto node = new FunctionCallNode($1); 
-    $$ = node;
-  }
   ;
 
 %%

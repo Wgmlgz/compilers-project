@@ -78,7 +78,6 @@ void set_current_file(const char* filename) {
 "while"          { update_position(); if (DEBUG_LEXER) std::cout << "WHILE" << std::endl; return WHILE; }
 "let"            { update_position(); if (DEBUG_LEXER) std::cout << "LET" << std::endl; return LET; }
 "mut"            { update_position(); if (DEBUG_LEXER) std::cout << "MUT" << std::endl; return MUT; }
-"return"         { update_position(); if (DEBUG_LEXER) std::cout << "RETURN" << std::endl; return RETURN; }
 "true"           { update_position(); if (DEBUG_LEXER) std::cout << "TRUE" << std::endl; return TRUE; }
 "false"          { update_position(); if (DEBUG_LEXER) std::cout << "FALSE" << std::endl; return FALSE; }
 "i32"            { update_position(); if (DEBUG_LEXER) std::cout << "I32_TYPE" << std::endl; return I32_TYPE; }

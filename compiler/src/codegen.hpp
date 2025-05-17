@@ -5,8 +5,4 @@ struct Codegen {
 
 }
 
-struct FunctionGen {
-  
-}
-
 #endif  // CODEGEN_HPP

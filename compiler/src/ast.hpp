@@ -31,17 +31,6 @@ struct UndefinedType {};
 
 using Value = std::variant<int, bool, string, UndefinedType>;
 
-// Exception used for early return from function
-class ReturnValue : public std::exception {
-public:
-  Value value;
-  ReturnValue(Value val) : value(val) {}
-  
-  const char* what() const noexcept override {
-    return "Return statement executed";
-  }
-};
-
 class Node {
  public:
   virtual ~Node() = default;
@@ -211,47 +200,6 @@ class WhileNode : public Node {
     condition->print(indent + 4);
     std::cout << std::string(indent + 2, ' ') << "Body:" << std::endl;
     block->print(indent + 4);
-  }
-};
-
-class FunctionParamNode {
- public:
-  string name;
-  Type type;
-  
-  FunctionParamNode(const string &n, Type t) : name(n), type(t) {}
-};
-
-class ReturnNode : public Node {
- public:
-  std::unique_ptr<Node> expression;
-  
-  ReturnNode(Node *expr) : expression(expr) {}
-  
-  void print(int indent = 0) const override {
-    std::cout << std::string(indent, ' ') << "Return" << std::endl;
-    if (expression) {
-      expression->print(indent + 2);
-    }
-  }
-};
-
-class FunctionCallNode : public Node {
- public:
-  string functionName;
-  std::vector<std::unique_ptr<Node>> arguments;
-  
-  FunctionCallNode(const string &name) : functionName(name) {}
-  
-  void addArgument(Node *arg) {
-    arguments.emplace_back(arg);
-  }
-  
-  void print(int indent = 0) const override {
-    std::cout << std::string(indent, ' ') << "FunctionCall(" << functionName << ")" << std::endl;
-    for (const auto& arg : arguments) {
-      arg->print(indent + 2);
-    }
   }
 };
 
