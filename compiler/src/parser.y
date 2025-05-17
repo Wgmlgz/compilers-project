@@ -38,22 +38,21 @@ std::string source_buffer;
 %token <num> NUMBER
 %token <str> IDENTIFIER STRING
 %token PLUS MINUS STAR SLASH MODULO
-%token SEMICOLON COLON COMMA ARROW
+%token SEMICOLON COLON COMMA
 %token ASSIGN PLUS_ASSIGN MINUS_ASSIGN STAR_ASSIGN SLASH_ASSIGN MODULO_ASSIGN
 %token EQ LT GT LEQ GEQ NEQ AND OR NOT
 %token TRUE FALSE
-%token IF ELSE WHILE LET MUT FN RETURN PRINT
+%token IF ELSE WHILE LET MUT RETURN PRINT
 %token I32_TYPE STR_TYPE BOOL_TYPE UNIT_TYPE
 %token OPEN_PARENTHESES CLOSE_PARENTHESES OPEN_BRACKET CLOSE_BRACKET
 
 %type <node> program items item statements statement expression
 %type <node> expression_statement block 
 %type <node> if_statement while_statement declaration assignment
-%type <node> function_definition return_statement
+%type <node> return_statement
 %type <node> print_statement
 %type <node> precedence16 precedence15 precedence14 precedence10 precedence9 precedence6 precedence5 precedence3 precedence0
 %type <node> function_call
-%type <params> parameters parameter_list
 %type <type> type_annotation
 
 %nonassoc IF
@@ -181,62 +180,14 @@ while_statement:
   ;
 
 return_statement:
-  RETURN expression { 
-    $$ = new ReturnNode($2); 
-  }
-  | RETURN { 
+  RETURN { 
     $$ = new ReturnNode(new UnitNode()); 
   }
   ;
 
 print_statement:
-  PRINT OPEN_PARENTHESES STRING CLOSE_PARENTHESES { 
+  PRINT OPEN_PARENTHESES expression CLOSE_PARENTHESES { 
     $$ = new PrintNode($3); 
-  }
-  | PRINT OPEN_PARENTHESES STRING COMMA expression CLOSE_PARENTHESES { 
-    auto node = new PrintNode($3);
-    node->addArgument($5);
-    $$ = node;
-  }
-  | PRINT OPEN_PARENTHESES STRING COMMA expression COMMA expression CLOSE_PARENTHESES { 
-    auto node = new PrintNode($3);
-    node->addArgument($5);
-    node->addArgument($7);
-    $$ = node;
-  }
-  | PRINT OPEN_PARENTHESES STRING COMMA expression COMMA expression COMMA expression CLOSE_PARENTHESES { 
-    auto node = new PrintNode($3);
-    node->addArgument($5);
-    node->addArgument($7);
-    node->addArgument($9);
-    $$ = node;
-  }
-  ;
-
-function_definition:
-  FN IDENTIFIER OPEN_PARENTHESES parameters CLOSE_PARENTHESES ARROW type_annotation block { 
-    $$ = new FunctionNode($2, *$4, $7, $8); 
-    delete $4;
-  }
-  | FN IDENTIFIER OPEN_PARENTHESES parameters CLOSE_PARENTHESES block { 
-    $$ = new FunctionNode($2, *$4, Type::UNIT, $6); 
-    delete $4;
-  }
-  ;
-
-parameters:
-  parameter_list { $$ = $1; }
-  | { $$ = new std::vector<FunctionParamNode>(); }
-  ;
-
-parameter_list:
-  IDENTIFIER COLON type_annotation { 
-    $$ = new std::vector<FunctionParamNode>(); 
-    $$->emplace_back($1, $3); 
-  }
-  | parameter_list COMMA IDENTIFIER COLON type_annotation { 
-    $$ = $1; 
-    $$->emplace_back($3, $5); 
   }
   ;
 

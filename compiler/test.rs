@@ -9,4 +9,4 @@ while i <= n {
     i += 1;
 }
 
-print!("Huh? {}", result);
+print!(result);

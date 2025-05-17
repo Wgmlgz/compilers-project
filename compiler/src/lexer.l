@@ -66,7 +66,6 @@ void set_current_file(const char* filename) {
 ";"              { update_position(); if (DEBUG_LEXER) std::cout << "SEMICOLON" << std::endl; return SEMICOLON; }
 ":"              { update_position(); if (DEBUG_LEXER) std::cout << "COLON" << std::endl; return COLON; }
 ","              { update_position(); if (DEBUG_LEXER) std::cout << "COMMA" << std::endl; return COMMA; }
-"->"             { update_position(); if (DEBUG_LEXER) std::cout << "ARROW" << std::endl; return ARROW; }
 "="              { update_position(); if (DEBUG_LEXER) std::cout << "ASSIGN" << std::endl; return ASSIGN; }
 "+="             { update_position(); if (DEBUG_LEXER) std::cout << "PLUS_ASSIGN" << std::endl; return PLUS_ASSIGN; }
 "-="             { update_position(); if (DEBUG_LEXER) std::cout << "MINUS_ASSIGN" << std::endl; return MINUS_ASSIGN; }
@@ -79,7 +78,6 @@ void set_current_file(const char* filename) {
 "while"          { update_position(); if (DEBUG_LEXER) std::cout << "WHILE" << std::endl; return WHILE; }
 "let"            { update_position(); if (DEBUG_LEXER) std::cout << "LET" << std::endl; return LET; }
 "mut"            { update_position(); if (DEBUG_LEXER) std::cout << "MUT" << std::endl; return MUT; }
-"fn"             { update_position(); if (DEBUG_LEXER) std::cout << "FN" << std::endl; return FN; }
 "return"         { update_position(); if (DEBUG_LEXER) std::cout << "RETURN" << std::endl; return RETURN; }
 "true"           { update_position(); if (DEBUG_LEXER) std::cout << "TRUE" << std::endl; return TRUE; }
 "false"          { update_position(); if (DEBUG_LEXER) std::cout << "FALSE" << std::endl; return FALSE; }

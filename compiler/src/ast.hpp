@@ -222,29 +222,6 @@ class FunctionParamNode {
   FunctionParamNode(const string &n, Type t) : name(n), type(t) {}
 };
 
-class FunctionNode : public Node {
- public:
-  string name;
-  std::vector<FunctionParamNode> parameters;
-  Type returnType;
-  std::unique_ptr<Node> body;
-  
-  FunctionNode(const string &n, std::vector<FunctionParamNode> params, 
-               Type retType, Node *b)
-    : name(n), parameters(std::move(params)), returnType(retType), body(b) {}
-  
-  void print(int indent = 0) const override {
-    std::cout << std::string(indent, ' ') << "Function(" << name << ")" << std::endl;
-    std::cout << std::string(indent + 2, ' ') << "Parameters:" << std::endl;
-    for (const auto& param : parameters) {
-      std::cout << std::string(indent + 4, ' ') 
-                << param.name << " : " << static_cast<int>(param.type) << std::endl;
-    }
-    std::cout << std::string(indent + 2, ' ') << "Body:" << std::endl;
-    body->print(indent + 4);
-  }
-};
-
 class ReturnNode : public Node {
  public:
   std::unique_ptr<Node> expression;
@@ -280,20 +257,13 @@ class FunctionCallNode : public Node {
 
 class PrintNode : public Node {
  public:
-  string format;
-  std::vector<std::unique_ptr<Node>> arguments;
+  std::unique_ptr<Node> arg;
   
-  PrintNode(const string &fmt) : format(fmt) {}
-  
-  void addArgument(Node *arg) {
-    arguments.emplace_back(arg);
-  }
+  PrintNode(Node *a) : arg(a) {}
   
   void print(int indent = 0) const override {
-    std::cout << std::string(indent, ' ') << "Print(\"" << format << "\")" << std::endl;
-    for (const auto& arg : arguments) {
-      arg->print(indent + 2);
-    }
+    std::cout << std::string(indent, ' ') << "Print()" << std::endl;
+    arg->print(indent + 2);
   }
 };
 

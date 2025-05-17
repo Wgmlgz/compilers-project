@@ -17,17 +17,6 @@ enum class ErrorType {
     GENERAL_ERROR
 };
 
-struct SourceSpan {
-    int start_line;
-    int start_column;
-    int end_line;
-    int end_column;
-    std::string filename;
-    
-    SourceSpan(int sl = 0, int sc = 0, int el = 0, int ec = 0, const std::string& f = "")
-        : start_line(sl), start_column(sc), end_line(el), end_column(ec), filename(f) {}
-};
-
 struct SourceLocation {
     int line;
     int column;
