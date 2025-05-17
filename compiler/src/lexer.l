@@ -89,7 +89,7 @@ void set_current_file(const char* filename) {
 "()"             { update_position(); if (DEBUG_LEXER) std::cout << "UNIT_TYPE" << std::endl; return UNIT_TYPE; }
 
 \n               { column_num = 1; line_num++; /* track new lines */ }
-([ \t])          { column_num++; /* track whitespace */ }
+([ \t\r])          { column_num++; /* track whitespace */ }
 "//".*           { 
     update_position(); 
     /* ignore line comments */ 

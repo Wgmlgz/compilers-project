@@ -56,7 +56,7 @@ run_test() {
 echo -e "${YELLOW}Running ArrowRust test files (should pass):${NC}\n"
 
 failures=0
-for test_file in tests/legit/*.ar; do
+for test_file in tests/legit/*.rs; do
     run_test "$test_file" "false"
     failures=$((failures + $?))
 done
@@ -64,7 +64,7 @@ done
 # Run bad examples (these should fail with detailed errors)
 echo -e "\n${YELLOW}Running bad example test files (should fail with detailed errors):${NC}\n"
 
-for test_file in tests/bad_examples/*.ar; do
+for test_file in tests/bad_examples/*.rs; do
     run_test "$test_file" "true"
     # We don't count failures here as these are supposed to fail
 done

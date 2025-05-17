@@ -20,6 +20,10 @@ out/lexer.tab.cpp: src/lexer.l
 out/parser.tab.cpp: src/parser.y
 	$(BISON) -Wno-other -d -o out/parser.tab.cpp src/parser.y
 
+dev: build
+	@echo "Running dev test...\n"
+	$(INTERPRETER) < test.rs;
+
 test: build
 	@echo "Running tests...\n"
 	@for test in tests/legit/**; do \
