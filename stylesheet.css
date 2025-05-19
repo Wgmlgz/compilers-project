@@ -14,10 +14,10 @@ main {
   gap: .5em;
 }
 
-/* #programOutput:empty::after {
+#programOutput:empty::after {
   color: #777;
   content: 'Program output will be here';
-} */
+}
 
 textarea {
   resize: none;
@@ -96,4 +96,14 @@ button {
 #memoryTable button {
   margin-left: .5em;
   margin-right: .5em;
+}
+
+.hidden {
+  display: none;
+} 
+
+#sus {
+  display: grid;
+  grid-template: auto 1fr / 1fr 1fr 1fr;
+  gap: .5em;
 }

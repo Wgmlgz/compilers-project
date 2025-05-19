@@ -691,11 +691,15 @@ function reloadProgram() {
 }
 
 function stepOnce() {
-  const cmd = state.commands[state.programCounter++];
-  if (cmd) {
-    cmd.eval();
-  } else {
-    state.isHalted = true;
+  const useSteps = Number(document.getElementById("stepsPerUpdate").value);
+
+  for (let i = 0; i < useSteps; ++i) {
+    const cmd = state.commands[state.programCounter++];
+    if (cmd) {
+      cmd.eval();
+    } else {
+      state.isHalted = true;
+    }
   }
   updateMemoryTable();
   updateRegisters();
